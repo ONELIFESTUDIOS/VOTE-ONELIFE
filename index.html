@@ -25,9 +25,9 @@
         const app = initializeApp(firebaseConfig);
         window.db = getFirestore(app);
         window.auth = getAuth(app);
-        window.isAuthReady = false; // Flag para garantir que o Firestore está pronto
+        window.isAuthReady = false; 
         
-        // 2. AUTENTICAÇÃO
+        // 2. AUTENTICAÇÃO (Sinaliza que a votação está pronta)
         async function authenticate() {
             try {
                 if (initialAuthToken) {
@@ -36,12 +36,9 @@
                     await signInAnonymously(window.auth);
                 }
                 console.log("Firebase autenticado com sucesso.");
-                window.isAuthReady = true; // Marca como pronto
-                window.listenForVotes(); 
                 
-                // HABILITA OS BOTÕES APÓS O LOGIN
-                document.getElementById('btn-dota').disabled = false;
-                document.getElementById('btn-minecraft').disabled = false;
+                window.isAuthReady = true; 
+                window.listenForVotes(); // Começa a ouvir os votos
                 
             } catch (error) {
                 console.error("Erro na autenticação Firebase:", error);
@@ -63,87 +60,115 @@
     </script>
     
     <style>
-        /* Estilização para as transições de texto e fundo */
-        .pixel-shadow-white { text-shadow: 0 0 5px rgba(255,255,255,0.7), 0 0 10px rgba(255,255,255,0.5); transition: opacity 1.5s ease-in-out; }
-        
-        /* Estilos do Efeito Glitch para "VOCÊS ESCOLHEM" */
+        /* Otimização de Layout para Mobile */
+        body { 
+            overflow-y: auto; 
+            padding-top: 1rem; /* Reduzido o padding vertical */
+            padding-bottom: 1rem; 
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-color: #000;
+        }
+
+        .full-screen-content {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            width: 100%; 
+            min-height: 1px; 
+            text-align: center;
+        }
+
+        /* Redução do tamanho da fonte para a fase de escolha em Mobile */
+        #escolhem-title {
+            font-size: 1.5rem; /* Ajuste mais agressivo para caber em telas pequenas */
+        }
+        @media (min-width: 640px) { /* sm breakpoint */
+            #escolhem-title { font-size: 2rem; }
+        }
+
+        /* Estilos do Glitch (MANTIDOS) */
         .glitch-text { position: relative; color: #FF0000; }
         .glitch-text::before, .glitch-text::after { content: attr(data-text); position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; }
-        .glitch-text::before { left: 2px; text-shadow: -2px 0 cyan; clip-path: polygon(0 0, 100% 0, 100% 40%, 0 40%); animation: glitch-anim 2s infinite linear alternate-reverse; }
-        .glitch-text::after { left: -2px; text-shadow: 2px 0 magenta; clip-path: polygon(0 60%, 100% 60%, 100% 100%, 0 100%); animation: glitch-anim-2 3s infinite linear alternate-reverse; }
+        .glitch-text::before { left: 1px; text-shadow: -1px 0 cyan; animation: glitch-anim 2s infinite linear alternate-reverse; }
+        .glitch-text::after { left: -1px; text-shadow: 1px 0 magenta; animation: glitch-anim-2 3s infinite linear alternate-reverse; }
+        @keyframes glitch-anim { 0% { transform: translate(1px, 0); } 100% { transform: translate(1px, 0); } }
+        @keyframes glitch-anim-2 { 0% { transform: translate(0, 1px); } 100% { transform: translate(0, -1px); } }
 
-        @keyframes glitch-anim { 0% { clip-path: polygon(0 20%, 100% 20%, 100% 25%, 0 25%); transform: translate(1px, 0); } 100% { clip-path: polygon(0 90%, 100% 90%, 100% 95%, 0 95%); transform: translate(1px, 0); } }
-        @keyframes glitch-anim-2 { 0% { clip-path: polygon(0 10%, 100% 10%, 100% 15%, 0 15%); transform: translate(0, 1px); } 100% { clip-path: polygon(0 5%, 100% 5%, 100% 10%, 0 10%); transform: translate(0, -1px); } }
-
-        /* Estilo para os botões pixelados */
+        /* Estilo para os botões pixelados - Otimizado para Toque */
         .btn-pixel { 
             font-family: 'Press Start 2P', cursive; 
-            padding: 1rem 1rem; /* Aumentei o padding vertical e horizontal */
+            padding: 0.8rem 1rem; 
             border: 3px solid white; 
             border-radius: 0.5rem; 
             box-shadow: 4px 4px 0px 0px rgba(255, 255, 255, 0.7); 
             cursor: pointer; 
             transition: all 0.1s; 
-            /* Garante que o texto fique bem visível e centrado */
             display: flex;
             align-items: center;
             justify-content: center;
             line-height: 1;
+            width: 100%; 
+            touch-action: manipulation;
+            font-size: 0.65rem; /* Fonte menor para caber nos botões */
         }
         .btn-pixel:hover { transform: translate(2px, 2px); box-shadow: 2px 2px 0px 0px rgba(255, 255, 255, 0.9); }
         .btn-pixel:disabled { opacity: 0.5; cursor: not-allowed; transform: none; box-shadow: none; }
-        .output-box { background-color: #1a1a1a; border: 4px solid #FF0000; padding: 1.5rem; max-width: 90%; border-radius: 0.5rem; box-shadow: 0 0 15px rgba(255, 0, 0, 0.5); }
         
-        /* Classe para feedback de sucesso de clique */
+        /* Redução de Padding e Fonte na Área de Output */
+        .output-box { background-color: #1a1a1a; border: 4px solid #FF0000; padding: 0.6rem; max-width: 90%; margin-top: 0.7rem; border-radius: 0.5rem; box-shadow: 0 0 15px rgba(255, 0, 0, 0.5); }
         .btn-flash-success { background-color: #00CC00 !important; color: #000000 !important; }
+        #output-text { font-size: 0.65rem; }
     </style>
 </head>
 
-<body id="app-body" class="h-screen w-full bg-black flex items-center justify-center overflow-hidden transition-colors duration-1000">
+<body id="app-body" class="bg-black flex items-center justify-center transition-colors duration-1000">
 
-    <div class="relative flex items-center justify-center w-full h-full">
+    <!-- Container principal -->
+    <div class="relative full-screen-content w-full">
 
-        <!-- FASES INICIAIS (1 e 2) - Otimizadas para Mobile -->
-        <h1 id="dota-title" class="absolute text-white text-4xl sm:text-6xl lg:text-7xl font-pixel uppercase tracking-widest pixel-shadow-white">Dota</h1>
-        <h1 id="minecraft-title" class="absolute text-white text-4xl sm:text-6xl lg:text-7xl font-pixel uppercase tracking-widest pixel-shadow-white opacity-0">Minecraft</h1>
+        <!-- FASES INICIAIS (1 e 2) - Títulos absolutos e centralizados -->
+        <h1 id="dota-title" class="absolute text-4xl sm:text-6xl lg:text-7xl font-pixel uppercase tracking-widest text-white">Dota</h1>
+        <h1 id="minecraft-title" class="absolute text-4xl sm:text-6xl lg:text-7xl font-pixel uppercase tracking-widest opacity-0 text-white">Minecraft</h1>
 
-        <!-- 3. TELA DE VOTAÇÃO E ESCOLHA (Com Glitch e Interação) -->
-        <div id="final-screen-content" class="absolute flex flex-col items-center justify-center opacity-0 transition-opacity duration-1000 w-full h-full px-4">
+        <!-- 3. TELA DE VOTAÇÃO E ESCOLHA -->
+        <div id="final-screen-content" class="full-screen-content absolute opacity-0 transition-opacity duration-1000 w-full px-4 py-4">
             
             <h1 id="escolhem-title" 
-                class="text-3xl sm:text-6xl lg:text-7xl font-pixel uppercase tracking-widest glitch-text mb-12 text-center"
+                class="font-pixel uppercase tracking-widest glitch-text mb-4 text-center"
                 data-text="VOCÊS ESCOLHEM">
                 VOCÊS ESCOLHEM
             </h1>
             
-            <!-- Botões de Voto -->
-            <div id="game-choice-buttons" class="flex flex-col sm:flex-row gap-4 mb-8">
-                <!-- BOTÃO DOTA - ADICIONADO 'DISABLED' INICIALMENTE -->
-                <button onclick="castVote('dota')" id="btn-dota" class="btn-pixel bg-white text-black hover:bg-gray-300 transition-colors text-sm" disabled>
+            <!-- Botões de Voto (REMOVIDO 'disabled' para interatividade imediata) -->
+            <div id="game-choice-buttons" class="flex flex-col sm:flex-row gap-3 mb-3 w-full max-w-sm">
+                <button onclick="castVote('dota')" id="btn-dota" class="btn-pixel bg-white text-black hover:bg-gray-300 transition-colors">
                     DOTA
                 </button>
-                <!-- BOTÃO MINECRAFT - ADICIONADO 'DISABLED' INICIALMENTE -->
-                <button onclick="castVote('minecraft')" id="btn-minecraft" class="btn-pixel bg-red-600 text-white hover:bg-red-700 transition-colors text-sm" disabled>
+                <button onclick="castVote('minecraft')" id="btn-minecraft" class="btn-pixel bg-red-600 text-white hover:bg-red-700 transition-colors">
                     MINECRAFT
                 </button>
             </div>
 
-            <!-- Contadores de Votos em Tempo Real -->
-            <div id="vote-counters" class="flex flex-col sm:flex-row gap-8 mb-8 text-center font-pixel text-white text-xs sm:text-sm">
+            <!-- Contadores de Votos em Tempo Real (Fonte reduzida) -->
+            <div id="vote-counters" class="flex flex-col sm:flex-row gap-4 mb-3 text-center font-pixel text-white text-xs">
                 <p>DOTA VOTOS: <span id="dota-count" class="text-green-400">0</span></p>
                 <p>MINECRAFT VOTOS: <span id="minecraft-count" class="text-red-400">0</span></p>
             </div>
 
             <!-- Área de Resultados de Texto (Mensagem do Jogo) -->
-            <div id="output-area" class="mt-4 output-box hidden">
-                <p id="output-text" class="text-white font-pixel text-xs sm:text-base text-center"></p>
+            <div id="output-area" class="output-box hidden">
+                <p id="output-text" class="text-white font-pixel text-center"></p>
                 <!-- O botão ANUNCIAR CAMPEONATO é apenas para quem gere o evento -->
-                <button onclick="advanceToChampionshipScreen()" id="btn-advance" class="mt-4 btn-pixel bg-black text-white hover:bg-gray-800 hidden text-sm">
+                <button onclick="advanceToChampionshipScreen()" id="btn-advance" class="mt-3 btn-pixel bg-black text-white hover:bg-gray-800 hidden text-xs">
                     ANUNCIAR CAMPEONATO
                 </button>
             </div>
             
-            <p id="vote-message" class="mt-4 text-white font-pixel text-xs hidden">Voto Registado! O resultado é em tempo real.</p>
+            <p id="vote-message" class="mt-2 text-white font-pixel text-xs hidden">Voto Registado com sucesso!</p>
         </div>
         
         <!-- 4. Título do Campeonato (Quarto Canvas - Fundo Branco) -->
@@ -152,8 +177,6 @@
             <span class="text-black">CAMPEONATO INTERNACIONAL</span> 
             <span class="text-custom-red">ONELIFE</span>
         </h1>
-
-
     </div>
     
     <script type="module">
@@ -210,20 +233,23 @@
         // --- FIREBASE: FUNÇÃO DE VOTAÇÃO (TRANSACTION) ---
         window.castVote = async function(game) {
             
-            // Se o auth não estiver pronto, sai e não tenta votar (mas os botões deveriam estar disabled)
+            // Verifica se o Firebase está pronto. Se não, dá feedback imediato
             if (!window.db || !window.isAuthReady) {
                 elements.voteMessage.textContent = "A carregar dados... Tente novamente em segundos.";
-                return;
+                setTimeout(() => {
+                    elements.voteMessage.classList.add('hidden');
+                }, 1500);
+                return; 
             }
 
             const clickedButton = game === 'dota' ? elements.btnDota : elements.btnMinecraft;
             
-            // 1. FEEDBACK VISUAL IMEDIATO e DESABILITAR (ambos)
+            // 1. FEEDBACK VISUAL IMEDIATO e DESABILITAR
             elements.btnDota.disabled = true;
             elements.btnMinecraft.disabled = true;
             clickedButton.classList.add('btn-flash-success'); 
 
-            // 2. EXIBIR TEXTO (Isto é instantâneo)
+            // 2. EXIBIR TEXTO 
             const text = game === 'dota' ? DOTA_TEXT : MINECRAFT_TEXT;
             elements.outputText.textContent = text;
             elements.outputArea.classList.remove('hidden');
@@ -252,7 +278,7 @@
             } finally {
                 // 4. FINALIZAÇÃO E REATIVAÇÃO
                 if(success) {
-                    elements.voteMessage.textContent = "Voto Registado! O resultado é em tempo real.";
+                    elements.voteMessage.textContent = "Voto Registado com sucesso!";
                 }
 
                 // Reativa os botões e volta às cores originais após um pequeno atraso
@@ -311,3 +337,4 @@
     </script>
 </body>
 </html>
+
