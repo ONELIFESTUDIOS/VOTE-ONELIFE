@@ -38,7 +38,7 @@
                 console.log("Firebase autenticado com sucesso.");
                 
                 window.isAuthReady = true; 
-                window.listenForVotes(); // Começa a ouvir os votos
+                window.listenForVotes(); 
                 
             } catch (error) {
                 console.error("Erro na autenticação Firebase:", error);
@@ -63,7 +63,7 @@
         /* Otimização de Layout para Mobile */
         body { 
             overflow-y: auto; 
-            padding-top: 1rem; /* Reduzido o padding vertical */
+            padding-top: 1rem; 
             padding-bottom: 1rem; 
             min-height: 100vh;
             display: flex;
@@ -72,21 +72,24 @@
             background-color: #000;
         }
 
-        .full-screen-content {
+        /* Classe de Conteúdo Centralizado */
+        .centered-content {
             display: flex;
             align-items: center;
             justify-content: center;
             flex-direction: column;
             width: 100%; 
-            min-height: 1px; 
+            min-height: 100%;
+            position: absolute; /* Para centralizar as fases iniciais */
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
             text-align: center;
         }
 
         /* Redução do tamanho da fonte para a fase de escolha em Mobile */
-        #escolhem-title {
-            font-size: 1.5rem; /* Ajuste mais agressivo para caber em telas pequenas */
-        }
-        @media (min-width: 640px) { /* sm breakpoint */
+        #escolhem-title { font-size: 1.5rem; }
+        @media (min-width: 640px) { 
             #escolhem-title { font-size: 2rem; }
         }
 
@@ -113,7 +116,9 @@
             line-height: 1;
             width: 100%; 
             touch-action: manipulation;
-            font-size: 0.65rem; /* Fonte menor para caber nos botões */
+            font-size: 0.65rem; 
+            position: relative; 
+            z-index: 10; /* Z-Index Alto */
         }
         .btn-pixel:hover { transform: translate(2px, 2px); box-shadow: 2px 2px 0px 0px rgba(255, 255, 255, 0.9); }
         .btn-pixel:disabled { opacity: 0.5; cursor: not-allowed; transform: none; box-shadow: none; }
@@ -127,15 +132,16 @@
 
 <body id="app-body" class="bg-black flex items-center justify-center transition-colors duration-1000">
 
-    <!-- Container principal -->
-    <div class="relative full-screen-content w-full">
+    <!-- Container principal (AGORA RELATIVO PARA POSICIONAR ABSOLUTOS) -->
+    <div class="relative w-full h-screen">
 
         <!-- FASES INICIAIS (1 e 2) - Títulos absolutos e centralizados -->
-        <h1 id="dota-title" class="absolute text-4xl sm:text-6xl lg:text-7xl font-pixel uppercase tracking-widest text-white">Dota</h1>
-        <h1 id="minecraft-title" class="absolute text-4xl sm:text-6xl lg:text-7xl font-pixel uppercase tracking-widest opacity-0 text-white">Minecraft</h1>
+        <h1 id="dota-title" class="centered-content text-4xl sm:text-6xl lg:text-7xl font-pixel uppercase tracking-widest text-white">Dota</h1>
+        <h1 id="minecraft-title" class="centered-content text-4xl sm:text-6xl lg:text-7xl font-pixel uppercase tracking-widest opacity-0 text-white">Minecraft</h1>
 
-        <!-- 3. TELA DE VOTAÇÃO E ESCOLHA -->
-        <div id="final-screen-content" class="full-screen-content absolute opacity-0 transition-opacity duration-1000 w-full px-4 py-4">
+        <!-- 3. TELA DE VOTAÇÃO E ESCOLHA (SIMPLIFICADA) -->
+        <!-- O conteúdo da votação agora é um flexbox vertical centralizado -->
+        <div id="final-screen-content" class="centered-content opacity-0 transition-opacity duration-1000 w-full px-4 py-4 flex flex-col justify-center" style="z-index: 5;">
             
             <h1 id="escolhem-title" 
                 class="font-pixel uppercase tracking-widest glitch-text mb-4 text-center"
@@ -143,8 +149,8 @@
                 VOCÊS ESCOLHEM
             </h1>
             
-            <!-- Botões de Voto (REMOVIDO 'disabled' para interatividade imediata) -->
-            <div id="game-choice-buttons" class="flex flex-col sm:flex-row gap-3 mb-3 w-full max-w-sm">
+            <!-- Botões de Voto -->
+            <div class="flex flex-col sm:flex-row gap-3 mb-3 w-full max-w-sm" style="z-index: 10;">
                 <button onclick="castVote('dota')" id="btn-dota" class="btn-pixel bg-white text-black hover:bg-gray-300 transition-colors">
                     DOTA
                 </button>
@@ -153,7 +159,7 @@
                 </button>
             </div>
 
-            <!-- Contadores de Votos em Tempo Real (Fonte reduzida) -->
+            <!-- Contadores de Votos em Tempo Real -->
             <div id="vote-counters" class="flex flex-col sm:flex-row gap-4 mb-3 text-center font-pixel text-white text-xs">
                 <p>DOTA VOTOS: <span id="dota-count" class="text-green-400">0</span></p>
                 <p>MINECRAFT VOTOS: <span id="minecraft-count" class="text-red-400">0</span></p>
@@ -162,7 +168,6 @@
             <!-- Área de Resultados de Texto (Mensagem do Jogo) -->
             <div id="output-area" class="output-box hidden">
                 <p id="output-text" class="text-white font-pixel text-center"></p>
-                <!-- O botão ANUNCIAR CAMPEONATO é apenas para quem gere o evento -->
                 <button onclick="advanceToChampionshipScreen()" id="btn-advance" class="mt-3 btn-pixel bg-black text-white hover:bg-gray-800 hidden text-xs">
                     ANUNCIAR CAMPEONATO
                 </button>
@@ -173,7 +178,7 @@
         
         <!-- 4. Título do Campeonato (Quarto Canvas - Fundo Branco) -->
         <h1 id="campeonato-title" 
-            class="absolute text-2xl sm:text-4xl lg:text-5xl font-pixel uppercase tracking-widest opacity-0 text-center transition-opacity duration-1000 px-4">
+            class="centered-content text-2xl sm:text-4xl lg:text-5xl font-pixel uppercase tracking-widest opacity-0 text-center transition-opacity duration-1000 px-4">
             <span class="text-black">CAMPEONATO INTERNACIONAL</span> 
             <span class="text-custom-red">ONELIFE</span>
         </h1>
@@ -235,6 +240,7 @@
             
             // Verifica se o Firebase está pronto. Se não, dá feedback imediato
             if (!window.db || !window.isAuthReady) {
+                elements.voteMessage.classList.remove('hidden');
                 elements.voteMessage.textContent = "A carregar dados... Tente novamente em segundos.";
                 setTimeout(() => {
                     elements.voteMessage.classList.add('hidden');
@@ -337,4 +343,3 @@
     </script>
 </body>
 </html>
-
