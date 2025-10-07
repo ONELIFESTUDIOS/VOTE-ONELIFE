@@ -8,67 +8,6 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
     
-    <!-- FIREBASE IMPORTS: Reintroduzidos para a contagem de votos -->
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, doc, onSnapshot, setDoc, runTransaction, setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-
-        // Variáveis globais (fornecidas pelo ambiente Canvas)
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
-        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
-
-        setLogLevel('Debug'); 
-        
-        // 1. INICIALIZAR FIREBASE
-        const app = initializeApp(firebaseConfig);
-        window.db = getFirestore(app);
-        window.auth = getAuth(app);
-        window.isAuthReady = false; 
-        
-        // 2. AUTENTICAÇÃO E ATIVAÇÃO DOS BOTÕES
-        async function authenticateAndActivate() {
-            try {
-                if (initialAuthToken) {
-                    await signInWithCustomToken(window.auth, initialAuthToken);
-                } else {
-                    await signInAnonymously(window.auth);
-                }
-                
-                window.isAuthReady = true; 
-                window.listenForVotes(); 
-                
-                const btnDota = document.getElementById('btn-dota');
-                const btnMinecraft = document.getElementById('btn-minecraft');
-                const voteMessage = document.getElementById('vote-message');
-
-                // Garante que a ativação só ocorre APÓS a animação inicial ter mostrado os botões cinzentos
-                // O timeout de 4000ms garante que a transição Dota/Mine acabou.
-                setTimeout(() => {
-                    btnDota.disabled = false;
-                    btnMinecraft.disabled = false;
-                    
-                    // Restaura as cores ativas
-                    btnDota.classList.remove('btn-pixel-disabled');
-                    btnMinecraft.classList.remove('btn-pixel-disabled');
-                    btnDota.classList.add('bg-white', 'text-black', 'hover:bg-gray-300');
-                    btnMinecraft.classList.add('bg-red-600', 'text-white', 'hover:bg-red-700');
-                    
-                    voteMessage.textContent = "ESCOLHA REGISTADA!"; // Texto padrão de sucesso
-
-                }, 4000); 
-
-            } catch (error) {
-                console.error("Erro na autenticação Firebase:", error);
-                document.getElementById('vote-message').textContent = "Erro grave de conexão. Votação indisponível.";
-            }
-        }
-        
-        // A autenticação é iniciada IMEDIATAMENTE (de forma assíncrona)
-        authenticateAndActivate();
-    </script>
-
     <script>
         tailwind.config = {
             theme: {
@@ -142,11 +81,8 @@
             z-index: 10; 
         }
         .btn-pixel:hover:not(:disabled) { transform: translate(2px, 2px); box-shadow: 2px 2px 0px 0px rgba(255, 255, 255, 0.9); }
-        .btn-pixel:disabled { opacity: 0.8; cursor: not-allowed; transform: none; box-shadow: 4px 4px 0px 0px rgba(50, 50, 50, 0.7); }
+        .btn-pixel:disabled { opacity: 0.8; cursor: not-allowed; transform: none; box-shadow: 4px 4px 0px 0px rgba(50, 50, 50, 0.7); } 
         
-        /* Estilo especial para botões desabilitados (cinza) - ESTADO INICIAL */
-        .btn-pixel-disabled { background-color: #333 !important; color: #999 !important; border-color: #555 !important; }
-
         /* Estilo para botão flash de sucesso */
         .btn-flash-success { background-color: #00CC00 !important; color: #000000 !important; }
 
@@ -174,17 +110,17 @@
                 VOCÊS ESCOLHEM
             </h1>
             
-            <!-- Botões de Voto (Desabilitados inicialmente, esperando o Firebase) -->
+            <!-- Botões de Voto (AGORA SEM FIREBASE) -->
             <div class="flex flex-col sm:flex-row gap-3 mb-3 w-full max-w-sm" style="z-index: 10;">
-                <button onclick="castVote('dota')" id="btn-dota" disabled class="btn-pixel btn-pixel-disabled">
+                <button onclick="handleChoice('dota')" id="btn-dota" class="btn-pixel bg-white text-black hover:bg-gray-300">
                     DOTA
                 </button>
-                <button onclick="castVote('minecraft')" id="btn-minecraft" disabled class="btn-pixel btn-pixel-disabled">
+                <button onclick="handleChoice('minecraft')" id="btn-minecraft" class="btn-pixel bg-red-600 text-white hover:bg-red-700">
                     MINECRAFT
                 </button>
             </div>
 
-            <!-- Contadores de Votos em Tempo Real -->
+            <!-- Contadores de Votos (Contagem LOCAL por navegador) -->
             <div id="vote-counters" class="flex flex-col sm:flex-row gap-4 mb-3 text-center font-pixel text-white text-xs">
                 <p>DOTA VOTOS: <span id="dota-count" class="text-green-400">0</span></p>
                 <p>MINECRAFT VOTOS: <span id="minecraft-count" class="text-red-400">0</span></p>
@@ -198,7 +134,7 @@
                 </button>
             </div>
             
-            <p id="vote-message" class="mt-2 text-white font-pixel text-xs">A conectar à votação...</p>
+            <p id="vote-message" class="mt-2 text-white font-pixel text-xs">Clique para votar e avançar!</p>
         </div>
         
         <!-- 4. Título do Campeonato (Quarto Canvas - Regional) -->
@@ -209,9 +145,7 @@
         </h1>
     </div>
     
-    <script type="module">
-        import { doc, onSnapshot, setDoc, runTransaction } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-
+    <script>
         // --- CONSTANTES DE TEMPO E TEXTO ---
         const DOTA_TEXT = "Quem esperaria que estaríamos aqui? Será o Dota o local da batalha intensa dos players da Onelife?";
         const MINECRAFT_TEXT = "Um torneio entre Players e Blocos.. uma chama por poder e vitória se acende em meio à comunidade.";
@@ -221,8 +155,10 @@
         
         // --- ESTADO E ELEMENTOS ---
         let choiceMade = false; 
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-        const VOTES_DOC_PATH = `/artifacts/${appId}/public/data/onelife_votes/counts`;
+        
+        // Inicia a contagem de votos LOCAIS no navegador
+        let dotaVotes = 0;
+        let minecraftVotes = 0;
 
         const elements = {
             dotaTitle: document.getElementById('dota-title'),
@@ -240,91 +176,51 @@
             btnMinecraft: document.getElementById('btn-minecraft'),
         };
         
-        // --- FIREBASE: ESCUTA DE VOTOS EM TEMPO REAL ---
-        window.listenForVotes = function() {
-            if (!window.db) return;
-            const docRef = doc(window.db, VOTES_DOC_PATH);
-
-            onSnapshot(docRef, (docSnap) => {
-                if (docSnap.exists()) {
-                    const data = docSnap.data();
-                    elements.dotaCountSpan.textContent = data.dota || 0;
-                    elements.minecraftCountSpan.textContent = data.minecraft || 0;
-                } else {
-                    setDoc(docRef, { dota: 0, minecraft: 0 }).catch(console.error);
-                }
-            }, (error) => {
-                console.error("Erro ao ouvir votos:", error);
-                elements.voteMessage.textContent = "Erro na conexão de tempo real. Tente recarregar.";
-            });
-            elements.btnAdvance.classList.remove('hidden'); 
-        };
-
-        // --- FIREBASE: FUNÇÃO DE VOTAÇÃO (TRANSACTION) ---
-        window.castVote = async function(game) {
+        // --- FUNÇÃO DE ESCOLHA (SIMPLIFICADA e LOCAL) ---
+        window.handleChoice = function(game) {
             
-            // Verificação de segurança (embora os botões estejam desabilitados)
-            if (!window.db || !window.isAuthReady || elements.btnDota.disabled) {
-                elements.voteMessage.textContent = "Ainda a conectar à base de dados. Aguarde um momento e tente novamente.";
-                return; 
-            }
-
             const clickedButton = game === 'dota' ? elements.btnDota : elements.btnMinecraft;
             
             // 1. FEEDBACK VISUAL IMEDIATO e DESABILITAR
             elements.btnDota.disabled = true;
             elements.btnMinecraft.disabled = true;
             clickedButton.classList.add('btn-flash-success'); 
-            clickedButton.classList.remove('bg-white', 'text-black', 'bg-red-600', 'text-white'); // Remove cores ativas para o flash
+            clickedButton.classList.remove('bg-white', 'text-black', 'bg-red-600', 'text-white');
             
+            // 2. REGISTO DO VOTO LOCAL
+            if (game === 'dota') {
+                dotaVotes++;
+                elements.dotaCountSpan.textContent = dotaVotes;
+            } else {
+                minecraftVotes++;
+                elements.minecraftCountSpan.textContent = minecraftVotes;
+            }
 
-            // 2. EXIBIR TEXTO 
+            // 3. EXIBIR TEXTO 
             const text = game === 'dota' ? DOTA_TEXT : MINECRAFT_TEXT;
             elements.outputText.textContent = text;
             elements.outputArea.classList.remove('hidden');
             elements.voteMessage.classList.remove('hidden');
-            elements.voteMessage.textContent = "A registar voto...";
+            elements.voteMessage.textContent = "Voto Registado! Preparando o anúncio final...";
             
-            // 3. REGISTRAR VOTO NA BASE DE DADOS
-            const docRef = doc(window.db, VOTES_DOC_PATH);
-            let success = false;
-            
-            try {
-                await runTransaction(window.db, async (transaction) => {
-                    const docSnap = await transaction.get(docRef);
-                    if (docSnap.exists()) {
-                        let newCount = (docSnap.data()[game] || 0) + 1;
-                        transaction.update(docRef, { [game]: newCount });
-                    } else {
-                        transaction.set(docRef, { dota: 0, minecraft: 0, [game]: 1 });
-                    }
-                });
-                success = true;
+            // 4. FINALIZAÇÃO E REATIVAÇÃO
+            setTimeout(() => {
+                // Reativa os botões (caso o usuário queira votar de novo ou clicar em Anunciar)
+                elements.btnDota.disabled = false;
+                elements.btnMinecraft.disabled = false;
+                clickedButton.classList.remove('btn-flash-success');
                 
-            } catch (e) {
-                console.error("Transação de voto falhou: ", e);
-                elements.voteMessage.textContent = "ERRO ao registar voto. Tente novamente.";
-            } finally {
-                // 4. FINALIZAÇÃO E REATIVAÇÃO
-                if(success) {
-                    elements.voteMessage.textContent = "Voto Registado com sucesso!";
+                // Restaura as cores originais
+                if (game === 'dota') {
+                    clickedButton.classList.add('bg-white', 'text-black', 'hover:bg-gray-300');
+                } else {
+                    clickedButton.classList.add('bg-red-600', 'text-white', 'hover:bg-red-700');
                 }
+                
+            }, 1000); // 1 segundo de pausa
 
-                // Reativa os botões e volta às cores originais após um pequeno atraso
-                setTimeout(() => {
-                    elements.btnDota.disabled = false;
-                    elements.btnMinecraft.disabled = false;
-                    clickedButton.classList.remove('btn-flash-success');
-                    
-                    // Restaura as cores originais
-                    if (game === 'dota') {
-                        clickedButton.classList.add('bg-white', 'text-black', 'hover:bg-gray-300');
-                    } else {
-                        clickedButton.classList.add('bg-red-600', 'text-white', 'hover:bg-red-700');
-                    }
-                    
-                }, 1000);
-            }
+            // 5. Exibir botão ANUNCIAR CAMPEONATO
+            elements.btnAdvance.classList.remove('hidden');
         };
 
         // --- FUNÇÃO DE TRANSIÇÃO FINAL (ANÚNCIO DE CAMPEONATO) ---
@@ -358,7 +254,7 @@
                         elements.minecraftTitle.classList.add('opacity-0'); 
                         
                         setTimeout(() => {
-                            // TELA DE ESCOLHA aparece cinzenta
+                            // TELA DE ESCOLHA aparece imediatamente
                             elements.finalScreen.classList.remove('opacity-0'); 
                         }, TRANSITION_DURATION);
                         
