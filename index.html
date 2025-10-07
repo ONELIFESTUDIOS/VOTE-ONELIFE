@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
@@ -27,25 +28,37 @@
         window.auth = getAuth(app);
         window.isAuthReady = false; 
         
-        // 2. AUTENTICAÇÃO (Sinaliza que a votação está pronta)
-        async function authenticate() {
+        // 2. AUTENTICAÇÃO E ATIVAÇÃO DOS BOTÕES
+        async function authenticateAndActivate() {
             try {
                 if (initialAuthToken) {
                     await signInWithCustomToken(window.auth, initialAuthToken);
                 } else {
                     await signInAnonymously(window.auth);
                 }
-                console.log("Firebase autenticado com sucesso.");
                 
                 window.isAuthReady = true; 
                 window.listenForVotes(); 
                 
+                // *** ATIVAÇÃO MÁGICA: Remove o 'disabled' e aplica as cores ativas ***
+                document.getElementById('btn-dota').disabled = false;
+                document.getElementById('btn-minecraft').disabled = false;
+                
+                // Restaura as cores originais após ativação
+                document.getElementById('btn-dota').classList.remove('btn-pixel-disabled');
+                document.getElementById('btn-minecraft').classList.remove('btn-pixel-disabled');
+                document.getElementById('btn-dota').classList.add('bg-white', 'text-black', 'hover:bg-gray-300');
+                document.getElementById('btn-minecraft').classList.add('bg-red-600', 'text-white', 'hover:bg-red-700');
+
+
             } catch (error) {
                 console.error("Erro na autenticação Firebase:", error);
-                document.getElementById('vote-message').textContent = "Erro grave na autenticação. Recarregue a página.";
+                document.getElementById('vote-message').textContent = "Erro grave de conexão. Votação indisponível.";
             }
         }
-        authenticate();
+        
+        // A autenticação é iniciada IMEDIATAMENTE (de forma assíncrona)
+        authenticateAndActivate();
     </script>
 
     <script>
@@ -80,7 +93,7 @@
             flex-direction: column;
             width: 100%; 
             min-height: 100%;
-            position: absolute; /* Para centralizar as fases iniciais */
+            position: absolute; 
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
@@ -118,11 +131,14 @@
             touch-action: manipulation;
             font-size: 0.65rem; 
             position: relative; 
-            z-index: 10; /* Z-Index Alto */
+            z-index: 10; 
         }
-        .btn-pixel:hover { transform: translate(2px, 2px); box-shadow: 2px 2px 0px 0px rgba(255, 255, 255, 0.9); }
-        .btn-pixel:disabled { opacity: 0.5; cursor: not-allowed; transform: none; box-shadow: none; }
+        .btn-pixel:hover:not(:disabled) { transform: translate(2px, 2px); box-shadow: 2px 2px 0px 0px rgba(255, 255, 255, 0.9); }
+        .btn-pixel:disabled { opacity: 0.5; cursor: not-allowed; transform: none; box-shadow: 4px 4px 0px 0px rgba(100, 100, 100, 0.7); }
         
+        /* Estilo especial para botões desabilitados (cinza) */
+        .btn-pixel-disabled { background-color: #333 !important; color: #999 !important; border-color: #555 !important; }
+
         /* Redução de Padding e Fonte na Área de Output */
         .output-box { background-color: #1a1a1a; border: 4px solid #FF0000; padding: 0.6rem; max-width: 90%; margin-top: 0.7rem; border-radius: 0.5rem; box-shadow: 0 0 15px rgba(255, 0, 0, 0.5); }
         .btn-flash-success { background-color: #00CC00 !important; color: #000000 !important; }
@@ -136,11 +152,10 @@
     <div class="relative w-full h-screen">
 
         <!-- FASES INICIAIS (1 e 2) - Títulos absolutos e centralizados -->
-        <h1 id="dota-title" class="centered-content text-4xl sm:text-6xl lg:text-7xl font-pixel uppercase tracking-widest text-white">Dota</h1>
+        <h1 id="dota-title" class="centered-content text-4xl sm:text-6xl lg:text-7xl font-pixel uppercase tracking-widest text-white opacity-0">Dota</h1>
         <h1 id="minecraft-title" class="centered-content text-4xl sm:text-6xl lg:text-7xl font-pixel uppercase tracking-widest opacity-0 text-white">Minecraft</h1>
 
-        <!-- 3. TELA DE VOTAÇÃO E ESCOLHA (SIMPLIFICADA) -->
-        <!-- O conteúdo da votação agora é um flexbox vertical centralizado -->
+        <!-- 3. TELA DE VOTAÇÃO E ESCOLHA -->
         <div id="final-screen-content" class="centered-content opacity-0 transition-opacity duration-1000 w-full px-4 py-4 flex flex-col justify-center" style="z-index: 5;">
             
             <h1 id="escolhem-title" 
@@ -149,12 +164,12 @@
                 VOCÊS ESCOLHEM
             </h1>
             
-            <!-- Botões de Voto -->
+            <!-- Botões de Voto (Desabilitados inicialmente, esperando o Firebase) -->
             <div class="flex flex-col sm:flex-row gap-3 mb-3 w-full max-w-sm" style="z-index: 10;">
-                <button onclick="castVote('dota')" id="btn-dota" class="btn-pixel bg-white text-black hover:bg-gray-300 transition-colors">
+                <button onclick="castVote('dota')" id="btn-dota" disabled class="btn-pixel btn-pixel-disabled">
                     DOTA
                 </button>
-                <button onclick="castVote('minecraft')" id="btn-minecraft" class="btn-pixel bg-red-600 text-white hover:bg-red-700 transition-colors">
+                <button onclick="castVote('minecraft')" id="btn-minecraft" disabled class="btn-pixel btn-pixel-disabled">
                     MINECRAFT
                 </button>
             </div>
@@ -238,13 +253,10 @@
         // --- FIREBASE: FUNÇÃO DE VOTAÇÃO (TRANSACTION) ---
         window.castVote = async function(game) {
             
-            // Verifica se o Firebase está pronto. Se não, dá feedback imediato
+            // VERIFICAÇÃO FINAL: Se o botão está ativo, isAuthReady DEVE ser true.
             if (!window.db || !window.isAuthReady) {
                 elements.voteMessage.classList.remove('hidden');
-                elements.voteMessage.textContent = "A carregar dados... Tente novamente em segundos.";
-                setTimeout(() => {
-                    elements.voteMessage.classList.add('hidden');
-                }, 1500);
+                elements.voteMessage.textContent = "Erro grave de inicialização. Recarregue a página.";
                 return; 
             }
 
@@ -254,6 +266,8 @@
             elements.btnDota.disabled = true;
             elements.btnMinecraft.disabled = true;
             clickedButton.classList.add('btn-flash-success'); 
+            clickedButton.classList.remove('bg-white', 'text-black', 'bg-red-600', 'text-white'); // Remove cores ativas para o flash
+            
 
             // 2. EXIBIR TEXTO 
             const text = game === 'dota' ? DOTA_TEXT : MINECRAFT_TEXT;
@@ -292,11 +306,19 @@
                     elements.btnDota.disabled = false;
                     elements.btnMinecraft.disabled = false;
                     clickedButton.classList.remove('btn-flash-success');
+                    
+                    // Restaura as cores originais
+                    if (game === 'dota') {
+                        clickedButton.classList.add('bg-white', 'text-black', 'hover:bg-gray-300');
+                    } else {
+                        clickedButton.classList.add('bg-red-600', 'text-white', 'hover:bg-red-700');
+                    }
+                    
                 }, 1000);
             }
         };
 
-        // --- FUNÇÃO DE TRANSIÇÃO FINAL ---
+        // --- FUNÇÃO DE TRANSIÇÃO FINAL (ANÚNCIO DE CAMPEONATO) ---
         window.advanceToChampionshipScreen = function() {
             if (choiceMade) return;
             choiceMade = true;
@@ -313,7 +335,7 @@
             }, TRANSITION_DURATION);
         }
 
-        // --- CONTROLE SEQUENCIAL DE TELAS ---
+        // --- CONTROLE SEQUENCIAL DE TELAS (O MAIS RÁPIDO POSSÍVEL) ---
         function iniciarTransicao() {
             elements.dotaTitle.classList.remove('opacity-0');
 
@@ -327,8 +349,8 @@
                         elements.minecraftTitle.classList.add('opacity-0'); 
                         
                         setTimeout(() => {
+                            // AQUI a animação acaba, e os botões serão ATIVOS ou CINZENTOS
                             elements.finalScreen.classList.remove('opacity-0'); 
-                            // O fluxo para aqui.
                         }, TRANSITION_DURATION);
                         
                     }, DISPLAY_TIME);
@@ -338,8 +360,9 @@
             }, DISPLAY_TIME);
         }
 
-        // Inicia a sequência quando a janela estiver totalmente carregada
+        // Inicia a sequência de animação imediatamente ao carregar
         window.onload = iniciarTransicao;
     </script>
 </body>
 </html>
+
